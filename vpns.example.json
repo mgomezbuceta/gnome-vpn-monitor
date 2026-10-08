@@ -2,7 +2,8 @@
   {"id": "wg-ejemplo", "name": "WireGuard ejemplo", "kind": "WireGuard",
    "up": "sudo -n wg-quick up wg0", "down": "sudo -n wg-quick down wg0",
    "status": "ip link show dev wg0 >/dev/null 2>&1"},
-  {"id": "f5-ejemplo", "name": "F5 ejemplo", "kind": "F5",
-   "up": "sudo -n /ruta/a/vpn-connect.sh", "down": "/usr/local/bin/f5fpc -o",
-   "status": "/usr/local/bin/f5fpc --info 2>&1 | grep -q 'session established'"}
+  {"id": "openvpn-ejemplo", "name": "OpenVPN ejemplo", "kind": "OpenVPN",
+   "up": "sudo -n systemctl start openvpn-client@ejemplo",
+   "down": "sudo -n systemctl stop openvpn-client@ejemplo",
+   "status": "systemctl is-active --quiet openvpn-client@ejemplo"}
 ]

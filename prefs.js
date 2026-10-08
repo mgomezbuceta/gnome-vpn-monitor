@@ -11,7 +11,7 @@ const CMD_PREFIX = 'cmd:';
 
 const CMD_FIELDS = [
     ['name', 'Nombre'],
-    ['kind', 'Tipo (texto informativo, p. ej. WireGuard o F5)'],
+    ['kind', 'Tipo (texto informativo, p. ej. WireGuard u OpenVPN)'],
     ['up', 'Comando para conectar'],
     ['down', 'Comando para desconectar'],
     ['status', 'Comando de estado (código 0 = conectada)'],
@@ -96,8 +96,9 @@ export default class VpnMonitorPreferences extends ExtensionPreferences {
     _cmdGroup(settings) {
         const group = new Adw.PreferencesGroup({
             title: 'VPN por comandos',
-            description: 'Para VPN que no gestiona NetworkManager (wg-quick, f5fpc, scripts…). ' +
-                'Los comandos se ejecutan con /bin/sh como tu usuario; si usan sudo, debe ser sin contraseña (sudo -n).',
+            description: 'Para VPN que no gestiona NetworkManager (wg-quick, OpenVPN, scripts…). ' +
+                'Los comandos se ejecutan con /bin/sh como tu usuario; si usan sudo, debe ser sin contraseña (sudo -n). ' +
+                'No escribas contraseñas en ellos: se guardan en texto plano en tu configuración.',
         });
         const addButton = new Gtk.Button({
             icon_name: 'list-add-symbolic',
