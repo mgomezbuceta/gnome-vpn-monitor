@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="org.gnome.shell.extensions.vpn-monitor" path="/org/gnome/shell/extensions/vpn-monitor/">
+    <key name="autoreconnect-uuids" type="as">
+      <default>[]</default>
+      <summary>VPN con reconexión automática</summary>
+      <description>Identificadores (UUID de NetworkManager o cmd:id) de las VPN que se reconectan solas al caerse.</description>
+    </key>
+    <key name="custom-vpns" type="s">
+      <default>'[]'</default>
+      <summary>VPN por comandos</summary>
+      <description>JSON [{id, name, kind, up, down, status}]. status devuelve código 0 si está conectada.</description>
+    </key>
+    <key name="poll-interval" type="i">
+      <range min="3" max="600"/>
+      <default>10</default>
+      <summary>Cada cuántos segundos se ejecuta el comando de estado de las VPN por comandos</summary>
+    </key>
+    <key name="health-checks" type="s">
+      <default>'{}'</default>
+      <summary>Comprobación de tráfico por VPN</summary>
+      <description>JSON {id: "host:puerto"}. Si la VPN está activa pero no se puede abrir conexión TCP con ese host, se considera caída.</description>
+    </key>
+    <key name="check-interval" type="i">
+      <range min="10" max="3600"/>
+      <default>30</default>
+      <summary>Intervalo de la comprobación de tráfico (segundos)</summary>
+    </key>
+    <key name="max-retries" type="i">
+      <range min="0" max="100"/>
+      <default>10</default>
+      <summary>Reintentos máximos de reconexión (0 = sin límite)</summary>
+    </key>
+    <key name="notify-changes" type="b">
+      <default>true</default>
+      <summary>Notificar caídas y reconexiones</summary>
+    </key>
+  </schema>
+</schemalist>

@@ -1,0 +1,16 @@
+{
+  "uuid": "vpn-monitor@mgomezbuceta",
+  "name": "Monitor de VPN",
+  "description": "Lista tus VPN (NetworkManager, wg-quick, f5fpc o cualquier comando), muestra su estado, permite activarlas, desactivarlas o refrescarlas y reconecta automáticamente las que elijas cuando se cae la conexión.",
+  "shell-version": [
+    "46",
+    "47",
+    "48",
+    "49",
+    "50"
+  ],
+  "settings-schema": "org.gnome.shell.extensions.vpn-monitor",
+  "url": "https://github.com/mgomezbuceta/gnome-vpn-monitor",
+  "version": 1,
+  "version-name": "1.0.0"
+}

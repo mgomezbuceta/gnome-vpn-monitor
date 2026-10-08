@@ -1,0 +1,6 @@
+# Configuración personal (copia vpns.example.json)
+vpns.json
+
+# Artefactos
+*.zip
+schemas/gschemas.compiled
