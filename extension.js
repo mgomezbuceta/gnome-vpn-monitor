@@ -22,6 +22,9 @@ const TICK = 2;
 const CMD_CONNECT_TIMEOUT = 60;
 const CMD_DISCONNECT_TIMEOUT = 30;
 const CMD_STATUS_TIMEOUT = 15;
+// Fallos seguidos del comando de estado antes de dar una VPN por caída, para
+// no tumbar y relanzar un túnel sano por un fallo puntual (p. ej. un timeout).
+const STATUS_FAILS_TO_DROP = 2;
 const CMD_PREFIX = 'cmd:';
 
 const AS = NM.ActiveConnectionState;
@@ -79,18 +82,17 @@ function now() {
     return GLib.get_monotonic_time() / 1e6;
 }
 
-function lastLine(text) {
-    return (text ?? '').trim().split('\n').pop().slice(0, 200);
-}
-
+// La salida de los comandos se descarta a propósito: así nunca acaba en una
+// notificación (visible incluso en la pantalla de bloqueo) ni en memoria, y
+// ningún proceso hijo puede dejar la llamada colgada reteniendo una tubería.
 function runCommand(cmd, cancellable, timeout = 0) {
     return new Promise(resolve => {
         let proc;
         try {
             proc = Gio.Subprocess.new(['/bin/sh', '-c', cmd],
-                Gio.SubprocessFlags.STDOUT_PIPE | Gio.SubprocessFlags.STDERR_MERGE);
-        } catch (e) {
-            resolve({ok: false, out: e.message});
+                Gio.SubprocessFlags.STDOUT_SILENCE | Gio.SubprocessFlags.STDERR_SILENCE);
+        } catch {
+            resolve({ok: false});
             return;
         }
         let timer = 0;
@@ -101,14 +103,14 @@ function runCommand(cmd, cancellable, timeout = 0) {
                 return GLib.SOURCE_REMOVE;
             });
         }
-        proc.communicate_utf8_async(null, cancellable, (p, res) => {
+        proc.wait_async(cancellable, (p, res) => {
             if (timer)
                 GLib.source_remove(timer);
             try {
-                const [, out] = p.communicate_utf8_finish(res);
-                resolve({ok: p.get_successful(), out});
+                p.wait_finish(res);
+                resolve({ok: p.get_successful()});
             } catch (e) {
-                resolve({ok: false, out: e.message,
+                resolve({ok: false,
                     cancelled: e.matches(Gio.IOErrorEnum, Gio.IOErrorEnum.CANCELLED)});
             }
         });
@@ -262,7 +264,7 @@ class VpnMonitor {
     _cmdState(id) {
         let st = this._cmd.get(id);
         if (!st) {
-            st = {up: null, busy: null, deadline: 0, lastPoll: -Infinity, polling: false, out: ''};
+            st = {up: null, busy: null, deadline: 0, lastPoll: -Infinity, polling: false, misses: 0};
             this._cmd.set(id, st);
         }
         return st;
@@ -291,6 +293,12 @@ class VpnMonitor {
         if (r.cancelled || this._destroyed)
             return;
         const up = r.ok;
+        if (up) {
+            st.misses = 0;
+        } else if (st.up && st.busy !== 'disconnecting' && ++st.misses < STATUS_FAILS_TO_DROP) {
+            st.lastPoll = -Infinity; // Se vuelve a comprobar en el siguiente tick.
+            return;
+        }
         if (st.up === null) {
             st.up = up;
         } else if (up && !st.up) {
@@ -300,6 +308,7 @@ class VpnMonitor {
         } else if (!up && st.up) {
             st.up = false;
             st.busy = null;
+            st.misses = 0;
             this._handleDown(id, true, 'el comando de estado la da por desconectada', false);
         } else if (!up && st.busy === 'disconnecting') {
             // Se bajó mientras aún estaba conectando.
@@ -313,8 +322,7 @@ class VpnMonitor {
         const busy = st.busy;
         st.busy = null;
         if (busy === 'connecting') {
-            const detail = st.out ? `: ${st.out}` : '';
-            this._handleDown(id, false, `no conectó en ${CMD_CONNECT_TIMEOUT} s${detail}`, false);
+            this._handleDown(id, false, `no conectó en ${CMD_CONNECT_TIMEOUT} s`, false);
         } else {
             this._refreshing.delete(id);
             this._manualOff.delete(id);
@@ -323,14 +331,13 @@ class VpnMonitor {
         this._onChanged();
     }
 
-    async _cmdRun(id, v, busy, cmd, timeout) {
+    _cmdRun(id, busy, cmd, timeout) {
         const st = this._cmdState(id);
         st.busy = busy;
         st.deadline = now() + timeout;
-        st.out = '';
-        const r = await runCommand(cmd, this._cancellable);
-        if (!r.cancelled && !this._destroyed)
-            st.out = lastLine(r.out);
+        // El resultado se comprueba con el comando de estado, no con el código
+        // de salida (algunos clientes devuelven error aunque conecten).
+        runCommand(cmd, this._cancellable);
     }
 
     // --- Lógica común de caídas y reconexión ---
@@ -448,7 +455,7 @@ class VpnMonitor {
             // En los reintentos se baja antes por si quedó a medias (p. ej. la
             // interfaz de wg-quick sigue creada aunque el túnel no responda).
             const cmd = this._retries.has(id) ? `(${v.down}) >/dev/null 2>&1; ${v.up}` : v.up;
-            this._cmdRun(id, v, 'connecting', cmd, CMD_CONNECT_TIMEOUT);
+            this._cmdRun(id, 'connecting', cmd, CMD_CONNECT_TIMEOUT);
             return;
         }
         const conn = this._client?.get_connection_by_uuid(id);
@@ -473,7 +480,7 @@ class VpnMonitor {
         if (id.startsWith(CMD_PREFIX)) {
             const v = this._custom(id);
             if (v)
-                this._cmdRun(id, v, 'disconnecting', v.down, CMD_DISCONNECT_TIMEOUT);
+                this._cmdRun(id, 'disconnecting', v.down, CMD_DISCONNECT_TIMEOUT);
             return;
         }
         const ac = this._findActive(id);
