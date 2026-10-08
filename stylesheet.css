@@ -1,0 +1,12 @@
+.vpn-monitor-ok { color: #2ec27e; }
+.vpn-monitor-busy { color: #e5a50a; }
+.vpn-monitor-bad { color: #e01b24; }
+.system-status-icon.vpn-monitor-off { opacity: 0.6; }
+
+.vpn-monitor-button {
+  padding: 6px;
+  border-radius: 99px;
+}
+.vpn-monitor-button:hover,
+.vpn-monitor-button:focus { background-color: rgba(255, 255, 255, 0.12); }
+.vpn-monitor-button:checked { color: #2ec27e; background-color: rgba(46, 194, 126, 0.18); }
