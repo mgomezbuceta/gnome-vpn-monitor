@@ -11,6 +11,6 @@
   ],
   "settings-schema": "org.gnome.shell.extensions.vpn-monitor",
   "url": "https://github.com/mgomezbuceta/gnome-vpn-monitor",
-  "version": 2,
-  "version-name": "1.0.1"
+  "version": 3,
+  "version-name": "1.0.2"
 }

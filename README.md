@@ -31,6 +31,8 @@ Las VPN se caen sin avisar y te enteras cuando algo deja de funcionar. Esta exte
 | 🧩 **Cualquier VPN** | Las guardadas en NetworkManager (OpenVPN, WireGuard, OpenConnect, L2TP, IPsec…) y las que se levantan con comandos (`wg-quick`, `openvpn`, scripts propios). |
 
 > Solo se reconectan las VPN marcadas con ⟳ que **estaban conectadas y se caen**. Si la desconectas tú desde el menú, se queda desconectada.
+>
+> Al **iniciar sesión** se levantan las VPN marcadas con ⟳ (se puede desactivar en las preferencias). Al **desbloquear la pantalla** se reconectan las que estaban conectadas y se cayeron mientras estaba bloqueada.
 
 ## 📦 Instalación
 
@@ -109,6 +111,7 @@ Al reconectar tras una caída se ejecuta primero `down` y luego `up`, por si que
 | Opción | Por defecto |
 |---|---|
 | Notificaciones | activadas |
+| Conectar al iniciar sesión las VPN marcadas con ⟳ | activado |
 | Reintentos máximos de reconexión (0 = sin límite) | 10 |
 | Intervalo del comando de estado | 10 s |
 | Intervalo de la comprobación de tráfico | 30 s |

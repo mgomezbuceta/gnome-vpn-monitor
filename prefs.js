@@ -48,6 +48,13 @@ export default class VpnMonitorPreferences extends ExtensionPreferences {
         settings.bind('notify-changes', notifyRow, 'active', Gio.SettingsBindFlags.DEFAULT);
         group.add(notifyRow);
 
+        const loginRow = new Adw.SwitchRow({
+            title: 'Conectar al iniciar sesión',
+            subtitle: 'Levanta las VPN con reconexión automática al entrar en la sesión',
+        });
+        settings.bind('connect-at-login', loginRow, 'active', Gio.SettingsBindFlags.DEFAULT);
+        group.add(loginRow);
+
         const spins = [
             ['max-retries', 0, 100, 1, 'Reintentos máximos de reconexión',
                 '0 = sin límite. Entre intentos se espera 5 s, 10 s, 20 s… hasta 5 min'],
