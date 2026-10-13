@@ -26,6 +26,13 @@ const CMD_STATUS_TIMEOUT = 15;
 // no tumbar y relanzar un túnel sano por un fallo puntual (p. ej. un timeout).
 const STATUS_FAILS_TO_DROP = 2;
 const CMD_PREFIX = 'cmd:';
+// Espera antes de levantar las VPN al iniciar sesión, para dar tiempo a la red.
+const START_DELAY = 5;
+
+// Sobrevive a disable()/enable() dentro del mismo proceso de GNOME Shell (al
+// bloquear la pantalla se desactivan las extensiones): así se distingue el
+// inicio de sesión de un desbloqueo y se sabe qué VPN estaban conectadas.
+const carry = {started: false, up: new Set()};
 
 const AS = NM.ActiveConnectionState;
 const R = NM.ActiveConnectionStateReason;
@@ -139,6 +146,10 @@ class VpnMonitor {
         this._retryTimers = new Map();
         this._healthFails = new Map();
         this._healthTimer = 0;
+        this._firstRun = !carry.started;
+        this._carriedUp = carry.up;
+        carry.started = true;
+        carry.up = new Set();
 
         this._settingsId = this._settings.connect('changed', (_s, key) => {
             if (key === 'check-interval')
@@ -202,6 +213,10 @@ class VpnMonitor {
         ];
         for (const ac of c.get_active_connections())
             this._attach(ac);
+        for (const conn of c.get_connections().filter(isNmVpn)) {
+            if (!this._isActive(conn.get_uuid()))
+                this._initialDown(conn.get_uuid());
+        }
         this._onChanged();
     }
 
@@ -301,6 +316,8 @@ class VpnMonitor {
         }
         if (st.up === null) {
             st.up = up;
+            if (!up)
+                this._initialDown(id);
         } else if (up && !st.up) {
             st.up = true;
             st.busy = null;
@@ -380,6 +397,20 @@ class VpnMonitor {
 
         if (auto && this._retries.has(id))
             this._scheduleRetry(id);
+    }
+
+    // Primera vez que se ve una VPN, y está caída. Si es de las marcadas con ⟳
+    // se levanta: al iniciar sesión (si está activada la opción) o al desbloquear
+    // cuando estaba conectada antes de bloquear (se cayó sin que nadie vigilara).
+    _initialDown(id) {
+        if (!this.isAuto(id) || this._retries.has(id))
+            return;
+        if (this._carriedUp.has(id)) {
+            this._handleDown(id, true, 'mientras la pantalla estaba bloqueada', false);
+        } else if (this._firstRun && this._settings.get_boolean('connect-at-login')) {
+            this._retries.set(id, 0);
+            this._scheduleRetry(id, START_DELAY);
+        }
     }
 
     _scheduleRetry(id, delay = null) {
@@ -662,6 +693,8 @@ class VpnMonitor {
     }
 
     _downStatus(id) {
+        if (this._retries.get(id) === 0 && !this._lost.has(id))
+            return {active: false, level: 'busy', text: 'Se conectará en breve'};
         if (this._retries.has(id))
             return {active: false, level: 'bad', text: `Caída · reintento ${this._retries.get(id) + 1}`};
         if (this._lost.has(id))
@@ -670,6 +703,10 @@ class VpnMonitor {
     }
 
     destroy() {
+        for (const v of this.getVpns()) {
+            if (v.active || this._retries.has(v.id))
+                carry.up.add(v.id);
+        }
         this._destroyed = true;
         this._cancellable.cancel();
         this._settings.disconnect(this._settingsId);
@@ -715,6 +752,9 @@ class VpnItem extends PopupMenu.PopupBaseMenuItem {
 
         this._switch = new PopupMenu.Switch(false);
         this._switch.y_align = Clutter.ActorAlign.CENTER;
+        // Solo indica el estado. En GNOME 50 el Switch es interactivo y se quedaría
+        // con el clic, cambiando su estado sin que la fila emita 'activate'.
+        this._switch.reactive = false;
         this.add_child(this._switch);
 
         this.connect('activate', () => monitor.toggle(id));
