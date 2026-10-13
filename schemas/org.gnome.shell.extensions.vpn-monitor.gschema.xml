@@ -31,6 +31,11 @@
       <default>10</default>
       <summary>Reintentos máximos de reconexión (0 = sin límite)</summary>
     </key>
+    <key name="connect-at-login" type="b">
+      <default>true</default>
+      <summary>Conectar al iniciar sesión</summary>
+      <description>Levanta al iniciar sesión las VPN con reconexión automática que estén desconectadas.</description>
+    </key>
     <key name="notify-changes" type="b">
       <default>true</default>
       <summary>Notificar caídas y reconexiones</summary>
