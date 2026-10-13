@@ -752,6 +752,9 @@ class VpnItem extends PopupMenu.PopupBaseMenuItem {
 
         this._switch = new PopupMenu.Switch(false);
         this._switch.y_align = Clutter.ActorAlign.CENTER;
+        // Solo indica el estado. En GNOME 50 el Switch es interactivo y se quedaría
+        // con el clic, cambiando su estado sin que la fila emita 'activate'.
+        this._switch.reactive = false;
         this.add_child(this._switch);
 
         this.connect('activate', () => monitor.toggle(id));
